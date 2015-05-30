@@ -47,7 +47,7 @@ int main (int argc, char** argv) {
         
     // calculate the hist of the training image
     //loads and displays training image
-    src = imread( "orange.jpg", 1 );    
+    src = imread( "book.jpg", 1 );    
     cvtColor( src, hsv, COLOR_BGR2HSV );
         
     namedWindow( "Mask", WINDOW_NORMAL );
@@ -186,6 +186,7 @@ void Hist_and_Backproj( )
   
   /// Get the Histogram and normalize it
   calcHist( &hsv, 1, channels, mask, hist, 2, histSize, ranges, true, false );
+  //calcHist( &hsv, 1, channels, Mat(), hist, 2, histSize, ranges, true, false ); // doesn't sue mask
   printf("channels of hist during gen: %d\n", hist.channels());
 
   normalize( hist, hist, 0, 255, NORM_MINMAX, -1, Mat() );
