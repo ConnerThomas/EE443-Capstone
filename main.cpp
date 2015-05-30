@@ -41,17 +41,6 @@ int main (int argc, char** argv) {
     cap.set(CV_CAP_PROP_FRAME_WIDTH, 640);
     cap.set(CV_CAP_PROP_FRAME_HEIGHT, 480);
     
-    // Find the histogram of the loaded image
-    
-    //histogram bins
-//    int hsize = 16;
-    //histogram value range
-//    float hranges[] = {0,180};
-//    const float* phranges = hranges;
-    //initializes Mats
-//    Mat hue = Mat::zeros(200, 320, CV_8UC3);
-    //array of index pairs for mixchannels
-//    int chPRE[] = {0, 0};
     
     // Trackwindow starts as entire image
     Rect trackWindow = Rect(0, 0, 640, 480);
@@ -62,30 +51,10 @@ int main (int argc, char** argv) {
     cvtColor( src, hsv, COLOR_BGR2HSV );
         
     namedWindow( "Mask", WINDOW_NORMAL );
+    namedWindow( "BackProjF", WINDOW_NORMAL );
     namedWindow( "BackProj", WINDOW_NORMAL );
     // replace all of this
-    /*
-    //converts image to HSV and stores
-    cvtColor(orangeDef, orHSV, COLOR_BGR2HSV);
-    //reshapes existing Mat to specified sizes
-    huePRE.create(orHSV.size(), orHSV.depth());
-    mixChannels(&orHSV, 1, &huePRE, 1, chPRE, 1);
-    //creates mask based on HSV thresholds
-    inRange(orHSV, Scalar(0, 0, 0),
-                    Scalar(180, 256, 256), maskPRE);
     
-    
-    //computes and normalizes histogram from 0 to 255 (use equalize instead...?)
-    //mask input is optional, and decides which values to be included in histogram
-    calcHist(&huePRE, 1, 0, maskPRE, hist, 1, &hsize, &phranges);
-    //normalizes histogram from input mask when NORM_MINMAX type
-    normalize(hist, hist, 0, 255, NORM_MINMAX,-1,Mat());
-
-    //compute back projection
-    calcBackProject( &huePRE, 1, 0, hist, backproj, &phranges, 1, true);
-    
-    int lower, higher, mean, total;
-    */
     
     Hist_and_Backproj();
     
@@ -146,7 +115,8 @@ int main (int argc, char** argv) {
         ellipse( imgOriginal, trackBox, Scalar(0,0,255), 3, LINE_AA );        
              
         imshow( "CamShift Demo", imgOriginal );
-        moveWindow("Camshift Demo", 300, 300);
+        imshow( "BackProjF", backprojF );
+        imshow( "BackProj", backproj );
         
         // handle user input
         if (waitKey(15) == 27) {
