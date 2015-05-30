@@ -89,9 +89,13 @@ int main (int argc, char** argv) {
     
     Hist_and_Backproj();
     
-    Mat hueF, backprojF = Mat::zeros(200, 320, CV_8UC3);
-    float hranges[] = {0,180};
-    const float* phranges = hranges;
+    Mat hueF = Mat::zeros(200, 320, CV_8UC3);
+    Mat backprojF;
+    float h_rangeF[] = { 0, 179 };
+    float s_rangeF[] = { 0, 255 };
+    const float* Franges[] = { h_rangeF, s_rangeF };
+    
+    printf("channels of hist after gen: %d\n", hist.channels());
     
     // main video tracking while loop
     while (true) {
@@ -112,14 +116,20 @@ int main (int argc, char** argv) {
         // mask the frame to useful ranges
 //        inRange(imgHSV, Scalar(0, 100, 0),
 //                    Scalar(70, 200, 256), mask);
-        int ch[] = {0, 0};
-        hueF.create(imgHSV.size(), imgHSV.depth());
-        mixChannels(&imgHSV, 1, &hueF, 1, ch, 1);
-
+        int ch[] = {0,0, 1,1};
+        hueF.create(imgHSV.size(), CV_8UC3);
+        mixChannels(&imgHSV, 2, &hueF, 2, ch, 2);
+        
+        int chF[] = {0, 1};
+        //printf("channels of hueF: %d\n", hueF.channels());
+        //printf("dims of hist: %d\n", hist.dims);
         
         // need a hist of the obj by the time we are here
-        calcBackProject(&hueF, 1, 0, hist, backprojF, &phranges);
+        calcBackProject( &hueF, 1, chF, hist, backprojF, Franges, 1, true );
+        // calcBackProject( &hsv, 1, channels, hist, backproj, ranges, 1, true );
 //        backprojF &= mask;
+        
+        //printf("testback");
         
         // CAMSHIFT TRACKING WE WANT THIS
         RotatedRect trackBox = CamShift(backprojF, trackWindow,
@@ -143,10 +153,7 @@ int main (int argc, char** argv) {
             cout << "esc key pressed by user" << endl;
             break;
         }
-
-    }
-    
-    
+    }   
     return 0;
 }
 
@@ -204,12 +211,18 @@ void Hist_and_Backproj( )
 
   int channels[] = { 0, 1 };
 
+  printf("channels of hsv: %d\n", hsv.channels());
+  //printf("dims of hist: %d\n", hist.dims);
+  
   /// Get the Histogram and normalize it
   calcHist( &hsv, 1, channels, mask, hist, 2, histSize, ranges, true, false );
+  printf("channels of hist during gen: %d\n", hist.channels());
 
   normalize( hist, hist, 0, 255, NORM_MINMAX, -1, Mat() );
 
   /// Get Backprojection
+  
+  printf("channels of hsv: %d\n", hsv.channels());
 
   calcBackProject( &hsv, 1, channels, hist, backproj, ranges, 1, true );
   
