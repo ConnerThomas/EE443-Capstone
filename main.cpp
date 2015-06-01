@@ -22,12 +22,20 @@ Mat mask;
 Mat hist = Mat::zeros(200, 320, CV_8UC3);
 Scalar maskm;
 
+bool backprojMode = false;
+
 int hBins = 12; int sBins = 12;
 Mat backproj;
 const char* window_image = "Source image";
 
+int iLastX = -1;
+int iLastY = -1;
+Mat imgTmp;
+Mat imgLines;
+
 /// Function Headers
 void Hist_and_Backproj( );
+//void clearHist( int state, *void);
 
 
 int main (int argc, char** argv) {
@@ -41,15 +49,19 @@ int main (int argc, char** argv) {
     cap.set(CV_CAP_PROP_FRAME_WIDTH, 640);
     cap.set(CV_CAP_PROP_FRAME_HEIGHT, 480);
     
-    
+    //initialize history Mat
+    cap.read(imgTmp);
+    imgLines = Mat::zeros(imgTmp.size(),CV_8UC3);;
+   
     // Trackwindow starts as entire image
     Rect trackWindow = Rect(0, 0, 640, 480);
         
     // calculate the hist of the training image
     //loads and displays training image
-    src = imread( "book.jpg", 1 );    
+    src = imread( "orange.jpg", 1 );    
     cvtColor( src, hsv, COLOR_BGR2HSV );
-        
+    //namedWindow("CamShift Demo", WINDOW_NORMAL);
+    //createButton("Clear tracking history", clearHist*);
     namedWindow( "Mask", WINDOW_NORMAL );
     namedWindow( "BackProjF", WINDOW_NORMAL );
     namedWindow( "BackProj", WINDOW_NORMAL );
@@ -112,17 +124,53 @@ int main (int argc, char** argv) {
                                trackWindow.x + r, trackWindow.y + r) &
                           Rect(0, 0, cols, rows);
         }
-        ellipse( imgOriginal, trackBox, Scalar(0,0,255), 3, LINE_AA );        
+        
+         if( backprojMode )
+                cvtColor( backprojF, imgOriginal, COLOR_GRAY2BGR );
+        
+        ellipse( imgOriginal, trackBox, Scalar(0,0,255), 3, LINE_AA );  
+        rectangle(imgOriginal, trackBox.boundingRect(), Scalar(0,255,0));
+        
+        int posX = trackBox.boundingRect().x + trackBox.boundingRect().width/2;
+        int posY = trackBox.boundingRect().y + trackBox.boundingRect().height/2;
+        
+        if (abs(posX - iLastX) > 5 && abs(posY - iLastY)) {
+        
+            if (iLastX >= 0 && iLastY >- 0 && posX >= 0 && posY >= 0) {
+                line(imgLines, Point(posX, posY), Point(iLastX, iLastY), Scalar(0,0,255), 2 );     
+            }
+
+            iLastX = posX;
+            iLastY = posY;
+        
+        }
+        
+        imgOriginal = imgOriginal + imgLines;
+        flip(imgOriginal,imgOriginal,1);
              
         imshow( "CamShift Demo", imgOriginal );
-        imshow( "BackProjF", backprojF );
+        //imshow( "BackProjF", backprojF );
         imshow( "BackProj", backproj );
         
-        // handle user input
-        if (waitKey(15) == 27) {
-            cout << "esc key pressed by user" << endl;
+        
+        char c = (char)waitKey(10);
+        if( c == 27 ) {
+            cout << "ESC key pressed by user, closing" << endl;
             break;
         }
+        switch(c)
+        {
+        case 'b':
+            backprojMode = !backprojMode;
+            break;
+        case 8:
+            cout << "backspace key pressed by user, clearing history" << endl;
+            imgLines = Mat::zeros(imgLines.size(),CV_8UC3);; 
+            break;
+        default:
+            ;
+        }
+        
     }   
     return 0;
 }
@@ -171,7 +219,7 @@ void Hist_and_Backproj( )
   moveWindow("Mask", 200,200);
   resizeWindow("Mask",200,200);
  
-  int h_bins = 10; int s_bins = 5;
+  int h_bins = 15; int s_bins = 10;
   //now uses trackbar values for histogram bins
   int histSize[] = { h_bins, s_bins };
 
@@ -205,3 +253,8 @@ void Hist_and_Backproj( )
   resizeWindow("BackProj",200,200);
 
 }
+
+//void clearHist( int state, *void userdata ) {
+//    //clears tracking history
+//    //should wipe buffer, or just wipe drawn lines if no buffer created.
+//}
