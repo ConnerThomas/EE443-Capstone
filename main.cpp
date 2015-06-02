@@ -1,6 +1,8 @@
 /* 
  * File:   main.cpp
- * Author: ee443
+ * Author: Conner Thomas & Nick Morello
+ * 
+ * EE 443 Capstone Design Project
  *
  * Created on May 19, 2015, 10:02 PM
  */
@@ -76,7 +78,7 @@ int main (int argc, char** argv) {
         
     // calculate the hist of the training image
     //loads and displays training image
-    src = imread( "orange.jpg", 1 );    
+    src = imread( "banana.jpg", 1 );    
     cvtColor( src, hsv, COLOR_BGR2HSV );
     //namedWindow("CamShift Demo", WINDOW_NORMAL);
     //createButton("Clear tracking history", clearHist*);
@@ -136,14 +138,14 @@ int main (int argc, char** argv) {
         minMaxLoc(backprojF, &minF, &maxF);
         //printf("max backprojF %f\n", maxF);
         
-        //GaussianBlur(backprojF, backprojF, Size(5,5), 0.5);
+        GaussianBlur(backprojF, backprojF, Size(5,5), 0.5);
         
         //open operation to get rid of noise "specs"
         erode(backprojF, backprojF, getStructuringElement(MORPH_ELLIPSE, Size(3,3)) );
         //dilate(backprojF, backprojF, getStructuringElement(MORPH_ELLIPSE, Size(2,2)) );
         
-        //inRange(backprojF, 50, 255, bpMask);
-        //backprojF &= bpMask;
+        inRange(backprojF, 50, 255, bpMask);
+        backprojF &= bpMask;
         
         if (searchMode) {
 //        
@@ -294,7 +296,7 @@ void Hist_and_Backproj( )
   Mat mask2 = Mat::zeros( src.rows + 2, src.cols + 2, CV_8UC1 );
   int lo = 80;
   int hi = 80;
-  floodFill( src, mask2, seed, newVal, 0, Scalar( 100,lo,lo ), Scalar( 100,hi,hi ), flags );
+  floodFill( src, mask2, seed, newVal, 0, Scalar( 60,lo,lo ), Scalar( 60,hi,hi ), flags );
   
   //imshow("test", mask2);
   
