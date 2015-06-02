@@ -30,6 +30,9 @@ Mat mask;
 Mat hist = Mat::zeros(200, 320, CV_8UC3);
 Scalar maskm;
 
+int camW = 640;
+int camH = 480;
+
 bool backprojMode = false;
 
 int hBins = 12; int sBins = 12;
@@ -59,8 +62,8 @@ int main (int argc, char** argv) {
         cout << "Cannot open the webcam" << endl;
         return -1;
     }
-    cap.set(CV_CAP_PROP_FRAME_WIDTH, 640);
-    cap.set(CV_CAP_PROP_FRAME_HEIGHT, 480);
+    cap.set(CV_CAP_PROP_FRAME_WIDTH, camW);
+    cap.set(CV_CAP_PROP_FRAME_HEIGHT, camH);
     
     help();
     
@@ -69,7 +72,7 @@ int main (int argc, char** argv) {
     imgLines = Mat::zeros(imgTmp.size(),CV_8UC3);;
    
     // Trackwindow starts as entire image
-    Rect trackWindow = Rect(0, 0, 640, 480);
+    Rect trackWindow = Rect(0, 0, camW, camH);
         
     // calculate the hist of the training image
     //loads and displays training image
@@ -109,7 +112,11 @@ int main (int argc, char** argv) {
         // FRAME PROCESSING BLOCK: 
         // convert video frame to HSV
         Mat imgHSV;        
-        cvtColor(imgOriginal, imgHSV, COLOR_BGR2HSV);        
+        cvtColor(imgOriginal, imgHSV, COLOR_BGR2HSV);    
+        
+        //gaussian blur input image to reduce noise
+        GaussianBlur(imgHSV, imgHSV, Size(5,5), 0.5);
+        
         // mask the frame to useful ranges
 //        inRange(imgHSV, Scalar(0, 100, 0),
 //                    Scalar(70, 200, 256), mask);
@@ -129,10 +136,14 @@ int main (int argc, char** argv) {
         minMaxLoc(backprojF, &minF, &maxF);
         //printf("max backprojF %f\n", maxF);
         
+        //GaussianBlur(backprojF, backprojF, Size(5,5), 0.5);
         
-        inRange(backprojF, 60, 255, bpMask);
-        // calcBackProject( &hsv, 1, channels, hist, backproj, ranges, 1, true );
-        backprojF &= bpMask;
+        //open operation to get rid of noise "specs"
+        erode(backprojF, backprojF, getStructuringElement(MORPH_ELLIPSE, Size(3,3)) );
+        //dilate(backprojF, backprojF, getStructuringElement(MORPH_ELLIPSE, Size(2,2)) );
+        
+        //inRange(backprojF, 50, 255, bpMask);
+        //backprojF &= bpMask;
         
         if (searchMode) {
 //        
@@ -142,19 +153,19 @@ int main (int argc, char** argv) {
             
             switch(searchQuad) { //left to right, top to bottom
                 case 0: //Q1
-                    trackWindow = Rect(0,0,320,240);
+                    trackWindow = Rect(0,0,camW/2,camH/2);
                     searchQuad = 1;
                     break;
                 case 1: //Q2
-                    trackWindow = Rect(320,0,640,240);
+                    trackWindow = Rect(camW/2,0,camW,camH/2);
                     searchQuad = 2;
                     break;
                 case 2: //Q3
-                    trackWindow = Rect(0,240,320,480);
+                    trackWindow = Rect(0,camH/2,camW/2,camH);
                     searchQuad = 3;
                     break;
                 case 3: //Q4
-                    trackWindow = Rect(320,240,640,480);
+                    trackWindow = Rect(camW/2,camH/2,camW,camH);
                     searchQuad = 0;
                     break;
                 default:
@@ -283,7 +294,7 @@ void Hist_and_Backproj( )
   Mat mask2 = Mat::zeros( src.rows + 2, src.cols + 2, CV_8UC1 );
   int lo = 80;
   int hi = 80;
-  floodFill( src, mask2, seed, newVal, 0, Scalar( lo,lo,lo ), Scalar( hi,hi,hi ), flags );
+  floodFill( src, mask2, seed, newVal, 0, Scalar( 100,lo,lo ), Scalar( 100,hi,hi ), flags );
   
   //imshow("test", mask2);
   
@@ -296,7 +307,7 @@ void Hist_and_Backproj( )
   dilate(mask, mask, getStructuringElement(MORPH_ELLIPSE, Size(8,8)) );
   erode(mask, mask, getStructuringElement(MORPH_ELLIPSE, Size(8,8)) );
   
-//  maskm = mean(channels[0], mask); //LOL
+//  maskm = mean(channels[0], mask); //easy masked mean
 //  printf("mean of masked: %f\n", maskm[0]);
   
   imshow( "Mask", mask );
@@ -319,7 +330,7 @@ void Hist_and_Backproj( )
   
   /// Get the Histogram and normalize it
   calcHist( &hsv, 1, channels, mask, hist, 2, histSize, ranges, true, false );
-  //calcHist( &hsv, 1, channels, Mat(), hist, 2, histSize, ranges, true, false ); // doesn't sue mask
+  //calcHist( &hsv, 1, channels, Mat(), hist, 2, histSize, ranges, true, false ); // doesn't use mask
 //  printf("channels of hist during gen: %d\n", hist.channels());
 
   normalize( hist, hist, 0, 255, NORM_MINMAX, -1, Mat() );
