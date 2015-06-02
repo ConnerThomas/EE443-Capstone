@@ -16,6 +16,14 @@
 using namespace cv;
 using namespace std;
 
+static void help()
+{
+    cout << "\n\nHot keys: \n"
+            "\tESC - quit the program\n"
+            "\tb - switch to/from backprojection view\n"
+            "\tBACKSPACE - clear the tracking history\n";
+}
+
 /// Global Variables
 Mat src; Mat hsv;
 Mat mask;
@@ -54,6 +62,8 @@ int main (int argc, char** argv) {
     cap.set(CV_CAP_PROP_FRAME_WIDTH, 640);
     cap.set(CV_CAP_PROP_FRAME_HEIGHT, 480);
     
+    help();
+    
     //initialize history Mat
     cap.read(imgTmp);
     imgLines = Mat::zeros(imgTmp.size(),CV_8UC3);;
@@ -82,7 +92,7 @@ int main (int argc, char** argv) {
     float s_rangeF[] = { 0, 255 };
     const float* Franges[] = { h_rangeF, s_rangeF };
     
-    printf("channels of hist after gen: %d\n", hist.channels());
+    //printf("channels of hist after gen: %d\n", hist.channels());
     
     // main video tracking while loop
     while (true) {
@@ -256,7 +266,7 @@ void Hist_and_Backproj( )
   // Fill and get the mask
   // seed is center 
   Point seed = Point( src.rows / 2 , src.cols / 2 );
-  printf("x: %d y: %d\n", seed.x, seed.y);
+  //printf("x: %d y: %d\n", seed.x, seed.y);
   
   // mean stuff
 //  vector<Mat> channels;
@@ -304,19 +314,19 @@ void Hist_and_Backproj( )
 
   int channels[] = { 0, 1 };
 
-  printf("channels of hsv: %d\n", hsv.channels());
+//  printf("channels of hsv: %d\n", hsv.channels());
   //printf("dims of hist: %d\n", hist.dims);
   
   /// Get the Histogram and normalize it
   calcHist( &hsv, 1, channels, mask, hist, 2, histSize, ranges, true, false );
   //calcHist( &hsv, 1, channels, Mat(), hist, 2, histSize, ranges, true, false ); // doesn't sue mask
-  printf("channels of hist during gen: %d\n", hist.channels());
+//  printf("channels of hist during gen: %d\n", hist.channels());
 
   normalize( hist, hist, 0, 255, NORM_MINMAX, -1, Mat() );
 
   /// Get Backprojection
   
-  printf("channels of hsv: %d\n", hsv.channels());
+//  printf("channels of hsv: %d\n", hsv.channels());
 
   calcBackProject( &hsv, 1, channels, hist, backproj, ranges, 1, true );
   
