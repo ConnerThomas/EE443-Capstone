@@ -78,12 +78,11 @@ int main (int argc, char** argv) {
         
     // calculate the hist of the training image
     //loads and displays training image
-    src = imread( "banana.jpg", 1 );    
+    src = imread( "orange.jpg", 1 );    
     cvtColor( src, hsv, COLOR_BGR2HSV );
     //namedWindow("CamShift Demo", WINDOW_NORMAL);
     //createButton("Clear tracking history", clearHist*);
     namedWindow( "Mask", WINDOW_NORMAL );
-    namedWindow( "BackProjF", WINDOW_NORMAL );
     namedWindow( "BackProj", WINDOW_NORMAL );
     // replace all of this
     
@@ -138,13 +137,14 @@ int main (int argc, char** argv) {
         minMaxLoc(backprojF, &minF, &maxF);
         //printf("max backprojF %f\n", maxF);
         
-        GaussianBlur(backprojF, backprojF, Size(5,5), 0.5);
+        //blurs to reduce possible noise [instead done on original HSV]
+//        GaussianBlur(backprojF, backprojF, Size(5,5), 0.5);
         
         //open operation to get rid of noise "specs"
         erode(backprojF, backprojF, getStructuringElement(MORPH_ELLIPSE, Size(3,3)) );
         //dilate(backprojF, backprojF, getStructuringElement(MORPH_ELLIPSE, Size(2,2)) );
         
-        inRange(backprojF, 50, 255, bpMask);
+        inRange(backprojF, (int)(0.1*maxF), 255, bpMask);
         backprojF &= bpMask;
         
         if (searchMode) {
