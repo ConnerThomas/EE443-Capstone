@@ -33,6 +33,11 @@ int iLastY = -1;
 Mat imgTmp;
 Mat imgLines;
 
+bool searchMode = true;
+int searchQuad = 0;
+
+RotatedRect trackBox;
+
 /// Function Headers
 void Hist_and_Backproj( );
 //void clearHist( int state, *void);
@@ -72,6 +77,7 @@ int main (int argc, char** argv) {
     
     Mat hueF = Mat::zeros(200, 320, CV_8UC3);
     Mat backprojF;
+    Mat bpMask;
     float h_rangeF[] = { 0, 179 };
     float s_rangeF[] = { 0, 255 };
     const float* Franges[] = { h_rangeF, s_rangeF };
@@ -107,48 +113,114 @@ int main (int argc, char** argv) {
         
         // need a hist of the obj by the time we are here
         calcBackProject( &hueF, 1, chF, hist, backprojF, Franges, 1, true );
+        
+        double minF;
+        double maxF;
+        minMaxLoc(backprojF, &minF, &maxF);
+        //printf("max backprojF %f\n", maxF);
+        
+        
+        inRange(backprojF, 60, 255, bpMask);
         // calcBackProject( &hsv, 1, channels, hist, backproj, ranges, 1, true );
-//        backprojF &= mask;
+        backprojF &= bpMask;
         
-        //printf("testback");
-        
-        // CAMSHIFT TRACKING WE WANT THIS
-        RotatedRect trackBox = CamShift(backprojF, trackWindow,
+        if (searchMode) {
+//        
+//        iterate track window in quadrants across image
+//        once detection threshold met, "find image" and enter tracking mode
+//        detection: aspect ratio between a and b, size not greater than 250x250
+            
+            switch(searchQuad) { //left to right, top to bottom
+                case 0: //Q1
+                    trackWindow = Rect(0,0,320,240);
+                    searchQuad = 1;
+                    break;
+                case 1: //Q2
+                    trackWindow = Rect(320,0,640,240);
+                    searchQuad = 2;
+                    break;
+                case 2: //Q3
+                    trackWindow = Rect(0,240,320,480);
+                    searchQuad = 3;
+                    break;
+                case 3: //Q4
+                    trackWindow = Rect(320,240,640,480);
+                    searchQuad = 0;
+                    break;
+                default:
+                    break;
+            }
+            
+            trackBox = CamShift(backprojF, trackWindow,
                             TermCriteria( TermCriteria::EPS | TermCriteria::COUNT, 10, 1 ));
-        
-        // this should run with a set track window size
-        if( trackWindow.area() <= 1 )
-        {
-            int cols = backprojF.cols, rows = backprojF.rows, r = (MIN(cols, rows) + 5)/6;
-            trackWindow = Rect(trackWindow.x - r, trackWindow.y - r,
-                               trackWindow.x + r, trackWindow.y + r) &
-                          Rect(0, 0, cols, rows);
-        }
-        
-         if( backprojMode )
-                cvtColor( backprojF, imgOriginal, COLOR_GRAY2BGR );
-        
-        ellipse( imgOriginal, trackBox, Scalar(0,0,255), 3, LINE_AA );  
-        rectangle(imgOriginal, trackBox.boundingRect(), Scalar(0,255,0));
-        
-        int posX = trackBox.boundingRect().x + trackBox.boundingRect().width/2;
-        int posY = trackBox.boundingRect().y + trackBox.boundingRect().height/2;
-        
-        if (abs(posX - iLastX) > 5 && abs(posY - iLastY)) {
-        
-            if (iLastX >= 0 && iLastY >- 0 && posX >= 0 && posY >= 0) {
-                line(imgLines, Point(posX, posY), Point(iLastX, iLastY), Scalar(0,0,255), 2 );     
+            
+            //printf("Area of box: %d\n", trackBox.boundingRect().area());
+            
+            if (trackBox.boundingRect().area() > 1500 &&
+                trackBox.boundingRect().area() < 62500) {
+                cout << "Object detected, beginning tracking" << endl;
+                searchQuad = 0;
+                searchMode = false;
+                circle(imgLines, trackBox.center, 5, Scalar(0,255,0), -1);
+            }
+            
+        } else {
+            // normal tracking
+            trackBox = CamShift(backprojF, trackWindow,
+                                TermCriteria( TermCriteria::EPS | TermCriteria::COUNT, 10, 1 ));
+
+            // this should run with a set track window size
+            if( trackWindow.area() <= 1 )
+            {
+                int cols = backprojF.cols, rows = backprojF.rows, r = (MIN(cols, rows) + 5)/6;
+                trackWindow = Rect(trackWindow.x - r, trackWindow.y - r,
+                                   trackWindow.x + r, trackWindow.y + r) &
+                              Rect(0, 0, cols, rows);
             }
 
-            iLastX = posX;
-            iLastY = posY;
+            //threshold to enter search mode
+            //use aspect ratio of trackbox
+            //possibly check for image shape, implement later
+            //print "object lost", enter search mode
+            if (trackBox.boundingRect().area() < 1500 ||
+                    trackBox.boundingRect().area() > 62500) {
+                cout << "Object not found, entering search mode" << endl;
+                searchMode = true;
+
+                if (iLastX >= 0 && iLastY >= 0) {
+                    circle(imgLines, Point(iLastX, iLastY), 5, Scalar(0,0,255), -1);
+                }
+                iLastX = -1;
+                iLastY = -1;
+            }
+        }
         
+        if( backprojMode ) {
+                cvtColor( backprojF, imgOriginal, COLOR_GRAY2BGR );
+        }
+        
+        if (!searchMode) { //ensure object wasnt lost before drawing track lines
+            //ellipse( imgOriginal, trackBox, Scalar(0,0,255), 3, LINE_AA );  
+            rectangle(imgOriginal, trackBox.boundingRect(), Scalar(0,255,0));
+            int posX = trackBox.center.x;
+            int posY = trackBox.center.y;
+
+            if (abs(posX - iLastX) > 5 && abs(posY - iLastY)) {
+
+                if (iLastX >= 0 && iLastY >= 0 && posX >= 0 && posY >= 0) {
+                    line(imgLines, Point(posX, posY), Point(iLastX, iLastY), Scalar(255,0,255), 2 );     
+                }
+
+                iLastX = posX;
+                iLastY = posY;
+
+            }
         }
         
         imgOriginal = imgOriginal + imgLines;
         flip(imgOriginal,imgOriginal,1);
              
-        imshow( "CamShift Demo", imgOriginal );
+        imshow( "Object Tracking", imgOriginal );
         //imshow( "BackProjF", backprojF );
         imshow( "BackProj", backproj );
         
@@ -168,7 +240,7 @@ int main (int argc, char** argv) {
             imgLines = Mat::zeros(imgLines.size(),CV_8UC3);; 
             break;
         default:
-            ;
+            break;
         }
         
     }   
@@ -184,6 +256,7 @@ void Hist_and_Backproj( )
   // Fill and get the mask
   // seed is center 
   Point seed = Point( src.rows / 2 , src.cols / 2 );
+  printf("x: %d y: %d\n", seed.x, seed.y);
   
   // mean stuff
 //  vector<Mat> channels;
@@ -198,7 +271,9 @@ void Hist_and_Backproj( )
   int flags = connectivity + (newMaskVal << 8 ) + FLOODFILL_FIXED_RANGE + FLOODFILL_MASK_ONLY;
 
   Mat mask2 = Mat::zeros( src.rows + 2, src.cols + 2, CV_8UC1 );
-  floodFill( src, mask2, seed, newVal, 0, Scalar( 130,130,130 ), Scalar( 130,130,130 ), flags );
+  int lo = 80;
+  int hi = 80;
+  floodFill( src, mask2, seed, newVal, 0, Scalar( lo,lo,lo ), Scalar( hi,hi,hi ), flags );
   
   //imshow("test", mask2);
   
