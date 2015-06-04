@@ -4,6 +4,8 @@
  * 
  * EE 443 Capstone Design Project
  *
+ * NOTE: CAMERA SETTINGS: B117 C148 S202 G164 S145 BS0 Aperture pri
+ * 
  * Created on May 19, 2015, 10:02 PM
  */
 #include <opencv2/core/utility.hpp>
@@ -32,11 +34,17 @@ Mat mask;
 Mat hist = Mat::zeros(200, 320, CV_8UC3);
 Scalar maskm;
 
+// camera frame resolution
 int camW = 640;
 int camH = 480;
 
+// bounding rect area limits for threshold of tracking = true
+int lowerSize = 750;
+int upperSize = 62500;
+
 bool backprojMode = false;
 
+// H/S histogram settings
 int hBins = 12; int sBins = 12;
 Mat backproj;
 const char* window_image = "Source image";
@@ -180,8 +188,8 @@ int main (int argc, char** argv) {
             
             //printf("Area of box: %d\n", trackBox.boundingRect().area());
             
-            if (trackBox.boundingRect().area() > 750 &&
-                trackBox.boundingRect().area() < 62500) {
+            if (trackBox.boundingRect().area() > lowerSize &&
+                trackBox.boundingRect().area() < upperSize) {
                 cout << "Object detected, beginning tracking" << endl;
                 searchQuad = 0;
                 searchMode = false;
@@ -206,8 +214,8 @@ int main (int argc, char** argv) {
             //use aspect ratio of trackbox
             //possibly check for image shape, implement later
             //print "object lost", enter search mode
-            if (trackBox.boundingRect().area() < 750 ||
-                    trackBox.boundingRect().area() > 62500) {
+            if (trackBox.boundingRect().area() < lowerSize ||
+                    trackBox.boundingRect().area() > upperSize) {
                 cout << "Object not found, entering search mode" << endl;
                 searchMode = true;
 
