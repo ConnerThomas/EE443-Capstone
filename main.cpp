@@ -82,6 +82,7 @@ int main (int argc, char** argv) {
     cvtColor( src, hsv, COLOR_BGR2HSV );
     //namedWindow("CamShift Demo", WINDOW_NORMAL);
     //createButton("Clear tracking history", clearHist*);
+    namedWindow("Reference Image", WINDOW_NORMAL);
     namedWindow( "Mask", WINDOW_NORMAL );
     namedWindow( "BackProj", WINDOW_NORMAL );
     // replace all of this
@@ -141,8 +142,8 @@ int main (int argc, char** argv) {
 //        GaussianBlur(backprojF, backprojF, Size(5,5), 0.5);
         
         //open operation to get rid of noise "specs"
-        erode(backprojF, backprojF, getStructuringElement(MORPH_ELLIPSE, Size(3,3)) );
-        //dilate(backprojF, backprojF, getStructuringElement(MORPH_ELLIPSE, Size(2,2)) );
+        erode(backprojF, backprojF, getStructuringElement(MORPH_ELLIPSE, Size(4,4)) );
+        dilate(backprojF, backprojF, getStructuringElement(MORPH_ELLIPSE, Size(4,4)) );
         
         inRange(backprojF, (int)(0.1*maxF), 255, bpMask);
         backprojF &= bpMask;
@@ -261,6 +262,8 @@ int main (int argc, char** argv) {
         case 8:
             cout << "backspace key pressed by user, clearing history" << endl;
             imgLines = Mat::zeros(imgLines.size(),CV_8UC3);; 
+            if (!searchMode)
+                circle(imgLines, trackBox.center, 5, Scalar(0,255,0), -1);
             break;
         default:
             break;
@@ -278,8 +281,10 @@ void Hist_and_Backproj( )
     
   // Fill and get the mask
   // seed is center 
-  Point seed = Point( src.rows / 2 , src.cols / 2 );
+  //Point seed = Point( src.rows / 2 , src.cols / 2 );
   //printf("x: %d y: %d\n", seed.x, seed.y);
+  // seed is top left
+    Point seed = Point(0,0);
   
   // mean stuff
 //  vector<Mat> channels;
@@ -294,13 +299,17 @@ void Hist_and_Backproj( )
   int flags = connectivity + (newMaskVal << 8 ) + FLOODFILL_FIXED_RANGE + FLOODFILL_MASK_ONLY;
 
   Mat mask2 = Mat::zeros( src.rows + 2, src.cols + 2, CV_8UC1 );
-  int lo = 80;
-  int hi = 80;
-  floodFill( src, mask2, seed, newVal, 0, Scalar( 60,lo,lo ), Scalar( 60,hi,hi ), flags );
+  int lo = 60;
+  int hi = 60;
+  floodFill( src, mask2, seed, newVal, 0, Scalar( 45,lo,lo ), Scalar( 45,hi,hi ), flags );
   
-  //imshow("test", mask2);
+  imshow("Reference Image", src);
+  moveWindow("Reference Image", 400,600);
+  resizeWindow("Reference Image", 200,200);
   
   mask = mask2( Range( 1, mask2.rows - 1 ), Range( 1, mask2.cols - 1 ) );
+  //inverts mask
+  mask = 255 - mask;
 
   // open and close the mask to fill in gaps
   erode(mask, mask, getStructuringElement(MORPH_ELLIPSE, Size(8,8)) );
@@ -314,10 +323,10 @@ void Hist_and_Backproj( )
   
   imshow( "Mask", mask );
   //imshow( "Masked Img", hsv);
-  moveWindow("Mask", 200,200);
+  moveWindow("Mask", 400,400);
   resizeWindow("Mask",200,200);
  
-  int h_bins = 15; int s_bins = 10;
+  int h_bins = 16; int s_bins = 6;
   //now uses trackbar values for histogram bins
   int histSize[] = { h_bins, s_bins };
 
