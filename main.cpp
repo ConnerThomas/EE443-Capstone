@@ -39,7 +39,7 @@ int camW = 640;
 int camH = 480;
 
 // bounding rect area limits for threshold of tracking = true
-int lowerSize = 750;
+int lowerSize = 500;
 int upperSize = 62500;
 
 bool backprojMode = false;
@@ -86,7 +86,7 @@ int main (int argc, char** argv) {
         
     // calculate the hist of the training image
     //loads and displays training image
-    src = imread( "lime2Adj.jpg", 1 );    
+    src = imread( "banana3Adj.jpg", 1 );    
     cvtColor( src, hsv, COLOR_BGR2HSV );
     //namedWindow("CamShift Demo", WINDOW_NORMAL);
     //createButton("Clear tracking history", clearHist*);
@@ -141,11 +141,6 @@ int main (int argc, char** argv) {
         // need a hist of the obj by the time we are here
         calcBackProject( &hueF, 1, chF, hist, backprojF, Franges, 1, true );
         
-        double minF;
-        double maxF;
-        minMaxLoc(backprojF, &minF, &maxF);
-        //printf("max backprojF %f\n", maxF);
-        
         //blurs to reduce possible noise [instead done on original HSV]
 //        GaussianBlur(backprojF, backprojF, Size(5,5), 0.5);
         
@@ -153,7 +148,13 @@ int main (int argc, char** argv) {
         erode(backprojF, backprojF, getStructuringElement(MORPH_ELLIPSE, Size(3,3)) );
         dilate(backprojF, backprojF, getStructuringElement(MORPH_ELLIPSE, Size(3,3)) );
         
-        inRange(backprojF, (int)(0.1*maxF), 255, bpMask);
+        double minF;
+        double maxF;
+        minMaxLoc(backprojF, &minF, &maxF);
+        //printf("max backprojF %f\n", maxF);
+        
+        //inRange(backprojF, (int)(0.25*maxF), 255, bpMask);
+        inRange(backprojF, 80, 255, bpMask);
         backprojF &= bpMask;
         
         if (searchMode) {
