@@ -78,7 +78,7 @@ int main (int argc, char** argv) {
         
     // calculate the hist of the training image
     //loads and displays training image
-    src = imread( "bananaAdj.jpg", 1 );    
+    src = imread( "lime2Adj.jpg", 1 );    
     cvtColor( src, hsv, COLOR_BGR2HSV );
     //namedWindow("CamShift Demo", WINDOW_NORMAL);
     //createButton("Clear tracking history", clearHist*);
@@ -180,7 +180,7 @@ int main (int argc, char** argv) {
             
             //printf("Area of box: %d\n", trackBox.boundingRect().area());
             
-            if (trackBox.boundingRect().area() > 1500 &&
+            if (trackBox.boundingRect().area() > 750 &&
                 trackBox.boundingRect().area() < 62500) {
                 cout << "Object detected, beginning tracking" << endl;
                 searchQuad = 0;
@@ -206,7 +206,7 @@ int main (int argc, char** argv) {
             //use aspect ratio of trackbox
             //possibly check for image shape, implement later
             //print "object lost", enter search mode
-            if (trackBox.boundingRect().area() < 1500 ||
+            if (trackBox.boundingRect().area() < 750 ||
                     trackBox.boundingRect().area() > 62500) {
                 cout << "Object not found, entering search mode" << endl;
                 searchMode = true;
