@@ -1,10 +1,12 @@
 /* 
  * File:   main.cpp
- * Author: Conner Thomas & Nick Morello
+ * Authors: Conner Thomas & Nick Morello
  * 
  * EE 443 Capstone Design Project
  *
- * NOTE: CAMERA SETTINGS: B117 C148 S202 G164 S145 BS0 Aperture pri
+ * NOTE: CAMERA SETTINGS: B117 C148 S202 G164 S145 BC0 Aperture priority
+ * Brightness, Contrast, Saturation, Gain, Sharpness, Backlight Compensation
+ * Using Logitech C920 HD Pro
  * 
  * Created on May 19, 2015, 10:02 PM
  */
@@ -45,7 +47,7 @@ int upperSize = 62500;
 bool backprojMode = false;
 
 // H/S histogram settings
-int hBins = 12; int sBins = 12;
+int h_bins = 15; int s_bins = 10;
 Mat backproj;
 const char* window_image = "Source image";
 
@@ -86,15 +88,19 @@ int main (int argc, char** argv) {
         
     // calculate the hist of the training image
     //loads and displays training image
-    src = imread( "banana3Adj.jpg", 1 );    
+    //LOAD IMAGE HERE
+    src = imread( "lime2Adj.jpg", 1 );  
+    //LOAD IMAGE HERE
+    
+    //TODO: Load command line input file location
+    
+    
     cvtColor( src, hsv, COLOR_BGR2HSV );
     //namedWindow("CamShift Demo", WINDOW_NORMAL);
     //createButton("Clear tracking history", clearHist*);
     namedWindow("Reference Image", WINDOW_NORMAL);
     namedWindow( "Mask", WINDOW_NORMAL );
     namedWindow( "BackProj", WINDOW_NORMAL );
-    // replace all of this
-    
     
     Hist_and_Backproj();
     
@@ -138,7 +144,7 @@ int main (int argc, char** argv) {
         //printf("channels of hueF: %d\n", hueF.channels());
         //printf("dims of hist: %d\n", hist.dims);
         
-        // need a hist of the obj by the time we are here
+        // need a hist of the object by the time we are here
         calcBackProject( &hueF, 1, chF, hist, backprojF, Franges, 1, true );
         
         //blurs to reduce possible noise [instead done on original HSV]
@@ -153,7 +159,10 @@ int main (int argc, char** argv) {
         minMaxLoc(backprojF, &minF, &maxF);
         //printf("max backprojF %f\n", maxF);
         
+        //relative threshold.. doesn't work well if no object in frame
+        //could be fixed: assume object first in frame and STORE max
         //inRange(backprojF, (int)(0.25*maxF), 255, bpMask);
+        
         inRange(backprojF, 80, 255, bpMask);
         backprojF &= bpMask;
         
@@ -228,6 +237,7 @@ int main (int argc, char** argv) {
             }
         }
         
+        //replaces the "standard" live video with view of live back projection
         if( backprojMode ) {
                 cvtColor( backprojF, imgOriginal, COLOR_GRAY2BGR );
         }
@@ -238,37 +248,41 @@ int main (int argc, char** argv) {
             int posX = trackBox.center.x;
             int posY = trackBox.center.y;
 
+            //if the object is far enough away from the previous point
             if (abs(posX - iLastX) > 5 && abs(posY - iLastY)) {
 
+                //and the object has already been detected at least once
                 if (iLastX >= 0 && iLastY >= 0 && posX >= 0 && posY >= 0) {
+                    //draw line from previous position to new position
                     line(imgLines, Point(posX, posY), Point(iLastX, iLastY), Scalar(255,0,255), 2 );     
                 }
 
+                //update position buffer
                 iLastX = posX;
                 iLastY = posY;
 
             }
         }
         
+        //add object history to output image, then flip to accurately mirror
         imgOriginal = imgOriginal + imgLines;
         flip(imgOriginal,imgOriginal,1);
              
         imshow( "Object Tracking", imgOriginal );
-        //imshow( "BackProjF", backprojF );
         imshow( "BackProj", backproj );
         
         
         char c = (char)waitKey(10);
-        if( c == 27 ) {
+        if( c == 27 ) { //ends program
             cout << "ESC key pressed by user, closing" << endl;
             break;
         }
         switch(c)
         {
-        case 'b':
+        case 'b': //switches to/from back projection display mode
             backprojMode = !backprojMode;
             break;
-        case 8:
+        case 8: //clears the tracking history
             cout << "backspace key pressed by user, clearing history" << endl;
             imgLines = Mat::zeros(imgLines.size(),CV_8UC3);; 
             if (!searchMode)
@@ -307,15 +321,19 @@ void Hist_and_Backproj( )
   int connectivity = 8;
   int flags = connectivity + (newMaskVal << 8 ) + FLOODFILL_FIXED_RANGE + FLOODFILL_MASK_ONLY;
 
+  //mask size requirement for floodFill
   Mat mask2 = Mat::zeros( src.rows + 2, src.cols + 2, CV_8UC1 );
   int lo = 60;
   int hi = 60;
+  //floodfill starts at the top left, and "selects" the monochromatic background
+  //it then creates a binary mask of this background, which we inverse to mask the object
   floodFill( src, mask2, seed, newVal, 0, Scalar( 45,lo,lo ), Scalar( 45,hi,hi ), flags );
   
   imshow("Reference Image", src);
   moveWindow("Reference Image", 400,600);
   resizeWindow("Reference Image", 200,200);
   
+  //reverts mask back to size of input frame
   mask = mask2( Range( 1, mask2.rows - 1 ), Range( 1, mask2.cols - 1 ) );
   //inverts mask
   mask = 255 - mask;
@@ -327,22 +345,24 @@ void Hist_and_Backproj( )
   dilate(mask, mask, getStructuringElement(MORPH_ELLIPSE, Size(8,8)) );
   erode(mask, mask, getStructuringElement(MORPH_ELLIPSE, Size(8,8)) );
   
+  //mean no longer needed, kept for reference
 //  maskm = mean(channels[0], mask); //easy masked mean
 //  printf("mean of masked: %f\n", maskm[0]);
   
   imshow( "Mask", mask );
-  //imshow( "Masked Img", hsv);
   moveWindow("Mask", 400,400);
   resizeWindow("Mask",200,200);
- 
-  int h_bins = 15; int s_bins = 10;
-  //now uses trackbar values for histogram bins
+  
+  //uses global histogram bin numbers
+  //TODO: possibly read values as user input, or use trackbar to refine tracking
   int histSize[] = { h_bins, s_bins };
 
+  //histogram bin range parameters
   float h_range[] = { 0, 179 };
   float s_range[] = { 0, 255 };
   const float* ranges[] = { h_range, s_range };
 
+  //channels for histogram, makes it use H and S from HSV
   int channels[] = { 0, 1 };
 
 //  printf("channels of hsv: %d\n", hsv.channels());
@@ -369,8 +389,3 @@ void Hist_and_Backproj( )
   resizeWindow("BackProj",200,200);
 
 }
-
-//void clearHist( int state, *void userdata ) {
-//    //clears tracking history
-//    //should wipe buffer, or just wipe drawn lines if no buffer created.
-//}
