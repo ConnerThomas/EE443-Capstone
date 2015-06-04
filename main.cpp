@@ -78,7 +78,7 @@ int main (int argc, char** argv) {
         
     // calculate the hist of the training image
     //loads and displays training image
-    src = imread( "orange.jpg", 1 );    
+    src = imread( "bananaAdj.jpg", 1 );    
     cvtColor( src, hsv, COLOR_BGR2HSV );
     //namedWindow("CamShift Demo", WINDOW_NORMAL);
     //createButton("Clear tracking history", clearHist*);
@@ -142,8 +142,8 @@ int main (int argc, char** argv) {
 //        GaussianBlur(backprojF, backprojF, Size(5,5), 0.5);
         
         //open operation to get rid of noise "specs"
-        erode(backprojF, backprojF, getStructuringElement(MORPH_ELLIPSE, Size(4,4)) );
-        dilate(backprojF, backprojF, getStructuringElement(MORPH_ELLIPSE, Size(4,4)) );
+        erode(backprojF, backprojF, getStructuringElement(MORPH_ELLIPSE, Size(3,3)) );
+        dilate(backprojF, backprojF, getStructuringElement(MORPH_ELLIPSE, Size(3,3)) );
         
         inRange(backprojF, (int)(0.1*maxF), 255, bpMask);
         backprojF &= bpMask;
@@ -326,7 +326,7 @@ void Hist_and_Backproj( )
   moveWindow("Mask", 400,400);
   resizeWindow("Mask",200,200);
  
-  int h_bins = 16; int s_bins = 6;
+  int h_bins = 15; int s_bins = 10;
   //now uses trackbar values for histogram bins
   int histSize[] = { h_bins, s_bins };
 
